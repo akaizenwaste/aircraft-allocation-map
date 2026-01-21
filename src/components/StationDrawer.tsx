@@ -140,7 +140,7 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
       />
       <div
         ref={drawerRef}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-[var(--card)] border-l border-[var(--border)] shadow-xl z-50 drawer-enter overflow-hidden flex flex-col"
+        className="fixed right-0 top-0 bottom-0 w-full md:max-w-lg bg-[var(--card)] border-l border-[var(--border)] shadow-xl z-50 drawer-enter overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-title"
@@ -206,13 +206,13 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
         </div>
 
         {/* Actions */}
-        <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+        <div className="p-4 border-b border-[var(--border)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-[var(--muted-foreground)]">Sort by:</span>
             <select
               value={sortField}
               onChange={(e) => handleSort(e.target.value as SortField)}
-              className="bg-[var(--secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
+              className="bg-[var(--secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm flex-1 sm:flex-none"
             >
               <option value="ground_time">Ground Time</option>
               <option value="arrival_time">Arrival Time</option>
@@ -229,7 +229,7 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
           </div>
           <button
             onClick={handleAdd}
-            className="px-3 py-1.5 bg-[var(--primary)] hover:bg-blue-600 text-white rounded text-sm font-medium transition-colors"
+            className="px-3 py-2 sm:py-1.5 bg-[var(--primary)] hover:bg-blue-600 text-white rounded text-sm font-medium transition-colors"
           >
             + Add Aircraft
           </button>
@@ -308,7 +308,7 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-2 flex items-center gap-4 text-sm">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                     <div className="flex items-center gap-1">
                       <span className="text-[var(--muted-foreground)]">In:</span>
                       <span>{allocation.inbound_flight_number || '—'}</span>

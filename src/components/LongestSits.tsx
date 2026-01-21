@@ -15,8 +15,10 @@ export function LongestSits({ onStationClick }: LongestSitsProps) {
   return (
     <div
       className={cn(
-        'absolute bottom-4 right-4 z-20 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg shadow-lg transition-all',
-        isExpanded ? 'w-80' : 'w-auto'
+        'absolute z-20 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg shadow-lg transition-all',
+        isExpanded
+          ? 'bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80'
+          : 'bottom-4 right-4 w-auto'
       )}
     >
       <button
@@ -61,7 +63,7 @@ export function LongestSits({ onStationClick }: LongestSitsProps) {
       </button>
 
       {isExpanded && (
-        <div className="border-t border-[var(--border)] max-h-80 overflow-y-auto">
+        <div className="border-t border-[var(--border)] max-h-60 md:max-h-80 overflow-y-auto">
           {isLoading ? (
             <div className="p-4 text-center text-[var(--muted-foreground)] text-sm">
               Loading...

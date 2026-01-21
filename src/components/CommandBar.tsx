@@ -66,7 +66,7 @@ export function CommandBar({
   }
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg">
+    <div className="absolute top-4 left-2 right-2 md:left-1/2 md:right-auto md:-translate-x-1/2 z-30 flex flex-col md:flex-row items-stretch md:items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg">
       {/* Airport Search */}
       <div ref={searchRef} className="relative">
         <div className="flex items-center gap-2 bg-[var(--secondary)] rounded px-3 py-1.5">
@@ -80,7 +80,7 @@ export function CommandBar({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-[var(--muted-foreground)]"
+            className="text-[var(--muted-foreground)] flex-shrink-0"
           >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -94,13 +94,13 @@ export function CommandBar({
             }}
             onFocus={() => setShowSearchResults(true)}
             placeholder="Search airport (IATA/name)"
-            className="bg-transparent border-none outline-none text-sm w-48 placeholder:text-[var(--muted-foreground)]"
+            className="bg-transparent border-none outline-none text-sm w-full md:w-48 placeholder:text-[var(--muted-foreground)]"
           />
         </div>
 
         {/* Search Results Dropdown */}
         {showSearchResults && searchQuery && filteredAirports && filteredAirports.length > 0 && (
-          <div className="absolute top-full left-0 mt-1 w-72 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50">
+          <div className="absolute top-full left-0 right-0 md:right-auto mt-1 md:w-72 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50">
             {filteredAirports.map((airport) => (
               <button
                 key={airport.iata_code}
@@ -122,11 +122,13 @@ export function CommandBar({
         )}
       </div>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+      <div className="hidden md:block w-px h-6 bg-[var(--border)]" />
 
-      {/* Carrier Filter */}
-      <Popover.Root>
-        <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors">
+      {/* Filters Row - scrollable on mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 -mb-1 md:mb-0">
+        {/* Carrier Filter */}
+        <Popover.Root>
+          <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors whitespace-nowrap">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -140,18 +142,18 @@ export function CommandBar({
           >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>
-          <span>
-            Carriers
-            {carrierFilter.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs rounded-full">
-                {carrierFilter.length}
-              </span>
-            )}
-          </span>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Positioner>
-            <Popover.Popup className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 min-w-[200px] z-50">
+            <span>
+              Carriers
+              {carrierFilter.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs rounded-full">
+                  {carrierFilter.length}
+                </span>
+              )}
+            </span>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Positioner>
+              <Popover.Popup className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 min-w-[200px] z-50">
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Filter by Carrier</span>
@@ -188,76 +190,77 @@ export function CommandBar({
         </Popover.Portal>
       </Popover.Root>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+        <div className="w-px h-6 bg-[var(--border)] flex-shrink-0" />
 
-      {/* Only with Aircraft Toggle */}
-      <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded text-sm transition-colors">
-        <input
-          type="checkbox"
-          checked={showOnlyWithAircraft}
-          onChange={(e) => onShowOnlyWithAircraftChange(e.target.checked)}
-          className="w-4 h-4 rounded border-[var(--border)]"
-        />
-        <span>With aircraft only</span>
-      </label>
+        {/* Only with Aircraft Toggle */}
+        <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded text-sm transition-colors whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={showOnlyWithAircraft}
+            onChange={(e) => onShowOnlyWithAircraftChange(e.target.checked)}
+            className="w-4 h-4 rounded border-[var(--border)]"
+          />
+          <span>With aircraft only</span>
+        </label>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+        <div className="w-px h-6 bg-[var(--border)] flex-shrink-0" />
 
-      {/* Highlight Long Sits */}
-      <Popover.Root>
-        <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={highlightLongSits ? '#ef4444' : 'currentColor'}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <span>
-            Long sits
-            {highlightLongSits && (
-              <span className="ml-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
-                {highlightLongSits}h+
-              </span>
-            )}
-          </span>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Positioner>
-            <Popover.Popup className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 min-w-[180px] z-50">
-              <div className="space-y-2">
-                <span className="text-sm font-medium block mb-2">
-                  Highlight aircraft on ground
+        {/* Highlight Long Sits */}
+        <Popover.Root>
+          <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors whitespace-nowrap">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={highlightLongSits ? '#ef4444' : 'currentColor'}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>
+              Long sits
+              {highlightLongSits && (
+                <span className="ml-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
+                  {highlightLongSits}h+
                 </span>
-                {[null, 4, 6, 8, 12].map((hours) => (
-                  <label
-                    key={hours ?? 'none'}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-[var(--secondary)] px-2 py-1 rounded"
-                  >
-                    <input
-                      type="radio"
-                      name="highlightLongSits"
-                      checked={highlightLongSits === hours}
-                      onChange={() => onHighlightLongSitsChange(hours)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm">
-                      {hours === null ? 'Off' : `${hours}+ hours`}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </Popover.Popup>
-          </Popover.Positioner>
-        </Popover.Portal>
-      </Popover.Root>
+              )}
+            </span>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Positioner>
+              <Popover.Popup className="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 min-w-[180px] z-50">
+                <div className="space-y-2">
+                  <span className="text-sm font-medium block mb-2">
+                    Highlight aircraft on ground
+                  </span>
+                  {[null, 4, 6, 8, 12].map((hours) => (
+                    <label
+                      key={hours ?? 'none'}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-[var(--secondary)] px-2 py-1 rounded"
+                    >
+                      <input
+                        type="radio"
+                        name="highlightLongSits"
+                        checked={highlightLongSits === hours}
+                        onChange={() => onHighlightLongSitsChange(hours)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-sm">
+                        {hours === null ? 'Off' : `${hours}+ hours`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </Popover.Popup>
+            </Popover.Positioner>
+          </Popover.Portal>
+        </Popover.Root>
+      </div>
     </div>
   )
 }

@@ -128,7 +128,7 @@ export function AllocationDialog({
     <Dialog.Root open={true} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-black/60 z-50" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-6">
+        <Dialog.Popup className="fixed inset-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-auto sm:w-full sm:max-w-md bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl z-50 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-2rem)]">
           <Dialog.Title className="text-lg font-semibold mb-4">
             {isEditing ? 'Edit Aircraft Allocation' : 'Add Aircraft Allocation'}
           </Dialog.Title>
@@ -210,7 +210,7 @@ export function AllocationDialog({
             </div>
 
             {/* Flight Numbers */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="inbound_flight_number"
@@ -248,7 +248,7 @@ export function AllocationDialog({
             </div>
 
             {/* Times */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="arrival_time_local"

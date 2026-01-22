@@ -190,7 +190,7 @@ erDiagram
 
 These were in the original plan but removed per reviewer feedback (YAGNI):
 
-- Admin UI for configuring capacity (use Supabase dashboard for now)
+- ~~Admin UI for configuring capacity~~ - **IMPLEMENTED** at `/admin`
 - Real-time subscription for capacity changes (capacity rarely changes)
 - Audit columns for tracking who changed capacity
 - Map marker indicators for at-capacity stations

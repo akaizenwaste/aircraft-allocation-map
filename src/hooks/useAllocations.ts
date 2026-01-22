@@ -54,7 +54,7 @@ export function useAllocationSummary(viewTime: DateTime) {
       // Get all airports
       const { data: airports, error: airportError } = await supabase
         .from('airports')
-        .select('iata_code, name, lat, lng')
+        .select('iata_code, name, lat, lng, total_spots')
 
       if (airportError) throw airportError
 
@@ -62,7 +62,7 @@ export function useAllocationSummary(viewTime: DateTime) {
       const summaryMap = new Map<string, AllocationSummary>()
 
       // Initialize with all airports
-      const airportList = (airports || []) as Pick<Airport, 'iata_code' | 'name' | 'lat' | 'lng'>[]
+      const airportList = (airports || []) as Pick<Airport, 'iata_code' | 'name' | 'lat' | 'lng' | 'total_spots'>[]
       airportList.forEach(airport => {
         summaryMap.set(airport.iata_code, {
           station_iata: airport.iata_code,
@@ -71,6 +71,7 @@ export function useAllocationSummary(viewTime: DateTime) {
           airport_name: airport.name,
           lat: airport.lat,
           lng: airport.lng,
+          total_spots: airport.total_spots,
         })
       })
 
@@ -267,7 +268,7 @@ export function useUpdateAllocation(stationIata: string) {
 }
 
 // Delete allocation mutation
-export function useDeleteAllocation(stationIata: string) {
+export function useDeleteAllocation(stationIata?: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -281,7 +282,15 @@ export function useDeleteAllocation(stationIata: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocation-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+      queryClient.invalidateQueries({ queryKey: ['allocations-range'] })
+      if (stationIata) {
+        queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+      } else {
+        // Invalidate all station queries when no specific station
+        queryClient.invalidateQueries({
+          predicate: (q) => q.queryKey[0] === 'station-allocations'
+        })
+      }
     },
   })
 }
@@ -303,6 +312,78 @@ export function useLongestSitsNationwide(limit = 10) {
     },
     refetchInterval: 60000,
   })
+}
+
+// Fetch allocations for a date range with optional filters
+export function useAllocationsInRange(
+  startDate: DateTime,
+  endDate: DateTime,
+  filters?: {
+    carrierIds?: string[]
+    stationIatas?: string[]
+    tailNumber?: string
+  }
+) {
+  const queryClient = useQueryClient()
+  const startISO = startDate.startOf('day').toISO()
+  const endISO = endDate.endOf('day').toISO()
+  const cacheKey = `${startISO}-${endISO}-${JSON.stringify(filters || {})}`
+
+  const query = useQuery({
+    queryKey: ['allocations-range', cacheKey],
+    queryFn: async (): Promise<AllocationWithGroundTime[]> => {
+      // Get allocations that overlap with the date range
+      // Overlap means: period_start < endDate AND (period_end IS NULL OR period_end > startDate)
+      let queryBuilder = supabase
+        .from('allocations_with_ground_time')
+        .select('*')
+        .lt('period_start', endISO)
+        .or(`period_end.is.null,period_end.gt.${startISO}`)
+
+      // Apply optional filters
+      if (filters?.carrierIds && filters.carrierIds.length > 0) {
+        queryBuilder = queryBuilder.in('carrier_id', filters.carrierIds)
+      }
+      if (filters?.stationIatas && filters.stationIatas.length > 0) {
+        queryBuilder = queryBuilder.in('station_iata', filters.stationIatas)
+      }
+      if (filters?.tailNumber) {
+        queryBuilder = queryBuilder.ilike('tail_number', `%${filters.tailNumber}%`)
+      }
+
+      const { data, error } = await queryBuilder.order('period_start', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    },
+    refetchInterval: 60000,
+  })
+
+  // Set up realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('allocations-range-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'aircraft_allocations',
+        },
+        () => {
+          queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === 'allocations-range'
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
+
+  return query
 }
 
 // Fetch all allocations for a specific aircraft (for AircraftPanel)

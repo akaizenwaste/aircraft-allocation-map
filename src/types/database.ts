@@ -175,6 +175,7 @@ export interface AllocationSummary {
   airport_name: string
   lat: number
   lng: number
+  total_spots: number | null
 }
 
 export type Airport = Database['public']['Tables']['airports']['Row']

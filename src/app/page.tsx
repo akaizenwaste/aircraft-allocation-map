@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { DateTime } from 'luxon'
+import { NavBar } from '@/components/NavBar'
 import { CommandBar } from '@/components/CommandBar'
 import { CarrierLegend } from '@/components/CarrierLegend'
 import { StationDrawer } from '@/components/StationDrawer'
@@ -68,6 +69,8 @@ export default function Home() {
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col">
+      <NavBar />
+
       {/* Main content area */}
       <div className="flex-1 relative flex">
         {/* Map takes remaining space */}

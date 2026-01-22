@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Dialog } from '@base-ui/react'
 import { useCarriers } from '@/hooks/useCarriers'
+import { useAirports } from '@/hooks/useAirports'
 import { useCreateAllocation, useUpdateAllocation } from '@/hooks/useAllocations'
 import type { AllocationWithGroundTime, AllocationFormData } from '@/types/database'
 import { DateTime } from 'luxon'
 
 interface AllocationDialogProps {
-  stationIata: string
+  stationIata: string | null
   allocation: AllocationWithGroundTime | null
   onClose: () => void
 }
@@ -19,10 +20,27 @@ export function AllocationDialog({
   onClose,
 }: AllocationDialogProps) {
   const { data: carriers } = useCarriers()
-  const createAllocation = useCreateAllocation(stationIata)
-  const updateAllocation = useUpdateAllocation(stationIata)
+  const { data: airports } = useAirports()
+
+  // When stationIata is null, user needs to select a station
+  const [selectedStation, setSelectedStation] = useState<string>(stationIata || '')
+  const [stationSearch, setStationSearch] = useState('')
+  const [showStationDropdown, setShowStationDropdown] = useState(false)
+
+  const effectiveStation = stationIata || selectedStation
+  const createAllocation = useCreateAllocation(effectiveStation)
+  const updateAllocation = useUpdateAllocation(effectiveStation)
 
   const isEditing = !!allocation
+  const needsStationSelection = !stationIata
+
+  // Filter airports by search
+  const filteredAirports = airports?.filter(
+    (airport) =>
+      airport.iata_code.toLowerCase().includes(stationSearch.toLowerCase()) ||
+      airport.name.toLowerCase().includes(stationSearch.toLowerCase()) ||
+      airport.city?.toLowerCase().includes(stationSearch.toLowerCase())
+  ).slice(0, 8)
 
   const [formData, setFormData] = useState<AllocationFormData>({
     carrier_id: allocation?.carrier_id || '',
@@ -52,6 +70,10 @@ export function AllocationDialog({
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
+
+    if (needsStationSelection && !selectedStation) {
+      newErrors.station = 'Station is required'
+    }
 
     if (!formData.carrier_id) {
       newErrors.carrier_id = 'Carrier is required'
@@ -83,6 +105,8 @@ export function AllocationDialog({
         departure_time_local: formData.departure_time_local
           ? new Date(formData.departure_time_local).toISOString()
           : null,
+        // Include station_iata for global add flow
+        ...(needsStationSelection && { station_iata: selectedStation }),
       }
 
       if (isEditing && allocation) {
@@ -134,11 +158,91 @@ export function AllocationDialog({
           </Dialog.Title>
           <Dialog.Description className="text-sm text-[var(--muted-foreground)] mb-4">
             {isEditing
-              ? `Editing ${allocation?.tail_number} at ${stationIata}`
-              : `Add a new aircraft to ${stationIata}`}
+              ? `Editing ${allocation?.tail_number} at ${effectiveStation}`
+              : effectiveStation
+                ? `Add a new aircraft to ${effectiveStation}`
+                : 'Select a station and add aircraft details'}
           </Dialog.Description>
 
           <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+            {/* Station Select (only when no station provided) */}
+            {needsStationSelection && (
+              <div className="relative">
+                <label
+                  htmlFor="station"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Station *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="station"
+                    value={selectedStation || stationSearch}
+                    onChange={(e) => {
+                      setStationSearch(e.target.value)
+                      setSelectedStation('')
+                      setShowStationDropdown(true)
+                      if (errors.station) {
+                        setErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.station
+                          return next
+                        })
+                      }
+                    }}
+                    onFocus={() => setShowStationDropdown(true)}
+                    placeholder="Search airport (IATA/name)..."
+                    className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+                  />
+                  {selectedStation && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStation('')
+                        setStationSearch('')
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                {showStationDropdown && stationSearch && !selectedStation && filteredAirports && filteredAirports.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg overflow-hidden z-50 max-h-48 overflow-y-auto">
+                    {filteredAirports.map((airport) => (
+                      <button
+                        key={airport.iata_code}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStation(airport.iata_code)
+                          setStationSearch('')
+                          setShowStationDropdown(false)
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-[var(--secondary)] transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium">{airport.iata_code}</span>
+                          <span className="text-sm text-[var(--muted-foreground)] truncate">
+                            {airport.name}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {airport.city}, {airport.state}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {errors.station && (
+                  <p className="text-red-400 text-xs mt-1">{errors.station}</p>
+                )}
+              </div>
+            )}
+
             {/* Carrier Select */}
             <div>
               <label

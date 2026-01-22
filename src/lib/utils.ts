@@ -28,11 +28,11 @@ export function formatLocalDateTime(isoString: string, timezone: string): string
 }
 
 export function getMarkerSize(count: number): number {
-  if (count === 0) return 8
-  if (count <= 3) return 14
-  if (count <= 10) return 20
-  if (count <= 25) return 28
-  return 36
+  if (count === 0) return 20
+  if (count <= 3) return 36
+  if (count <= 10) return 48
+  if (count <= 25) return 60
+  return 72
 }
 
 export function cn(...classes: (string | boolean | undefined | null)[]): string {

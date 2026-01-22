@@ -14,6 +14,7 @@ interface MapProps {
   highlightLongSits: number | null
 }
 
+
 export function AircraftMap({
   onStationClick,
   selectedStation,
@@ -23,46 +24,16 @@ export function AircraftMap({
 }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
-  const markersRef = useRef<globalThis.Map<string, mapboxgl.Marker>>(new globalThis.Map())
+  const markersRef = useRef<globalThis.Map<string, { marker: mapboxgl.Marker; summary: AllocationSummary }>>(new globalThis.Map())
   const popupRef = useRef<mapboxgl.Popup | null>(null)
 
   const { data: allocationSummary, isLoading } = useAllocationSummary()
 
   const [mapLoaded, setMapLoaded] = useState(false)
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainer.current || mapRef.current) return
-
-    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
-
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [-98.5795, 39.8283], // Center of US
-      zoom: 4,
-      minZoom: 3,
-      maxZoom: 12,
-    })
-
-    mapRef.current.addControl(new mapboxgl.NavigationControl(), 'top-left')
-
-    mapRef.current.on('load', () => {
-      setMapLoaded(true)
-    })
-
-    return () => {
-      mapRef.current?.remove()
-      mapRef.current = null
-    }
-  }, [])
-
-  // Create marker element
-  const createMarkerElement = useCallback(
-    (summary: AllocationSummary): HTMLDivElement => {
-      const el = document.createElement('div')
-      el.className = 'marker-container cursor-pointer transition-transform hover:scale-110'
-
+  // Update marker element
+  const updateMarkerElement = useCallback(
+    (el: HTMLElement, summary: AllocationSummary) => {
       // Filter by carrier if filter is active
       let filteredBreakdown = summary.carrier_breakdown
       let filteredTotal = summary.total_count
@@ -81,6 +52,10 @@ export function AircraftMap({
       el.style.width = `${size}px`
       el.style.height = `${size}px`
 
+      // Reset styles
+      el.style.boxShadow = ''
+      el.style.borderRadius = ''
+
       // Add highlight ring for long sits
       if (highlightLongSits && summary.total_count > 0) {
         el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.5)'
@@ -92,11 +67,40 @@ export function AircraftMap({
         el.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.8)'
         el.style.borderRadius = '50%'
       }
-
-      return el
     },
     [carrierFilter, highlightLongSits, selectedStation]
   )
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainer.current || mapRef.current) return
+
+    mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
+
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [-98.5795, 39.8283], // Center of US
+      zoom: 4,
+      minZoom: 1,
+      maxZoom: 18,
+      dragRotate: false,
+      touchPitch: false,
+    })
+
+    // Set default cursor to pointer instead of grab hand
+    mapRef.current.getCanvas().style.cursor = 'default'
+
+    mapRef.current.on('load', () => {
+      setMapLoaded(true)
+    })
+
+    return () => {
+      mapRef.current?.remove()
+      mapRef.current = null
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Create popup content
   const createPopupContent = useCallback((summary: AllocationSummary): string => {
@@ -135,7 +139,7 @@ export function AircraftMap({
     if (!mapRef.current || !mapLoaded || !allocationSummary) return
 
     // Clear existing markers
-    markersRef.current.forEach((marker) => marker.remove())
+    markersRef.current.forEach(({ marker }) => marker.remove())
     markersRef.current.clear()
 
     // Add markers for each airport
@@ -151,7 +155,10 @@ export function AircraftMap({
         if (!hasMatchingCarrier && summary.total_count > 0) return
       }
 
-      const el = createMarkerElement(summary)
+      const el = document.createElement('div')
+      el.className = 'marker-container cursor-pointer transition-transform hover:scale-110'
+
+      updateMarkerElement(el, summary)
 
       const marker = new mapboxgl.Marker({
         element: el,
@@ -188,7 +195,7 @@ export function AircraftMap({
         onStationClick(iataCode)
       })
 
-      markersRef.current.set(iataCode, marker)
+      markersRef.current.set(iataCode, { marker, summary })
     })
   }, [
     allocationSummary,
@@ -197,7 +204,7 @@ export function AircraftMap({
     showOnlyWithAircraft,
     highlightLongSits,
     selectedStation,
-    createMarkerElement,
+    updateMarkerElement,
     createPopupContent,
     onStationClick,
   ])

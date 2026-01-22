@@ -66,7 +66,7 @@ export function CommandBar({
   }
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg whitespace-nowrap">
       {/* Airport Search */}
       <div ref={searchRef} className="relative">
         <div className="flex items-center gap-2 bg-[var(--secondary)] rounded px-3 py-1.5">

@@ -46,26 +46,43 @@
 }
 
 .mapboxgl-popup-content {
-  background: var(--card);
-  color: var(--card-foreground);
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  border: 1px solid var(--border);
-  padding: 0;
+  background: #18181b !important;
+  color: #fafafa !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.5) !important;
+  border: 1px solid #27272a !important;
+  padding: 0 !important;
 }
 
 .mapboxgl-popup-tip {
-  border-top-color: var(--card);
+  border-top-color: #18181b !important;
+  border-bottom-color: #18181b !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: #18181b !important;
+}
+
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: #18181b !important;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: #18181b !important;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: #18181b !important;
 }
 
 .mapboxgl-popup-close-button {
-  color: var(--muted-foreground);
+  color: #a1a1aa;
   font-size: 1.25rem;
   padding: 0.5rem;
 }
 
 .mapboxgl-popup-close-button:hover {
-  color: var(--foreground);
+  color: #fafafa;
 }
 
 /* Custom scrollbar */

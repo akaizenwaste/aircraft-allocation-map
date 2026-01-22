@@ -188,26 +188,34 @@ export function useStationAllocations(stationIata: string | null) {
 }
 
 // Create allocation mutation
-export function useCreateAllocation(stationIata: string) {
+export function useCreateAllocation(stationIata?: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: AllocationFormData) => {
+    mutationFn: async (data: AllocationFormData & { station_iata?: string }) => {
+      // Use station from data if provided (global add), otherwise use hook param
+      const station = data.station_iata || stationIata
+      if (!station) throw new Error('Station is required')
+
+      const { station_iata: _, ...rest } = data
       const { data: result, error } = await supabase
         .from('aircraft_allocations')
         .insert({
-          ...data,
-          station_iata: stationIata,
+          ...rest,
+          station_iata: station,
         })
         .select()
         .single()
 
       if (error) throw error
-      return result
+      return result as AircraftAllocation
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const station = variables.station_iata || stationIata
       queryClient.invalidateQueries({ queryKey: ['allocation-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+      if (station) {
+        queryClient.invalidateQueries({ queryKey: ['station-allocations', station] })
+      }
     },
   })
 }

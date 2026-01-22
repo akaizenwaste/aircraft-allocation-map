@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { DateTime } from 'luxon'
 import { NavBar } from '@/components/NavBar'
@@ -30,8 +30,13 @@ export default function Home() {
   const [highlightLongSits, setHighlightLongSits] = useState<number | null>(null)
   const [showAddTailDialog, setShowAddTailDialog] = useState(false)
 
-  // Timeline state
-  const [viewTime, setViewTime] = useState<DateTime>(() => DateTime.now())
+  // Timeline state - initialize as null to avoid hydration mismatch, set in useEffect
+  const [viewTime, setViewTime] = useState<DateTime | null>(null)
+
+  // Set initial time on client mount to avoid hydration mismatch
+  useEffect(() => {
+    setViewTime(DateTime.now())
+  }, [])
 
   // Get allocation summary for capacity totals
   const { data: allocationSummary } = useAllocationSummary(viewTime)
@@ -93,6 +98,18 @@ export default function Home() {
   const handleAddPeriod = useCallback((tailNumber: string) => {
     setAddingPeriodForTail(tailNumber)
   }, [])
+
+  // Show loading state until viewTime is initialized on client
+  if (!viewTime) {
+    return (
+      <div className="h-screen w-screen overflow-hidden flex flex-col">
+        <NavBar />
+        <div className="flex-1 flex items-center justify-center bg-[var(--background)]">
+          <div className="text-[var(--muted-foreground)]">Loading...</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col">

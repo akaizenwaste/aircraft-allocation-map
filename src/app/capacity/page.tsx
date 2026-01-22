@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { DateTime } from 'luxon'
 import { NavBar } from '@/components/NavBar'
 import { CapacitySummary } from '@/components/CapacitySummary'
@@ -12,7 +12,12 @@ import type { Airport } from '@/types/database'
 
 export default function CapacityPage() {
   const { data: airports, isLoading } = useAirports()
-  const { data: allocationSummary } = useAllocationSummary(DateTime.now())
+  // Initialize viewTime in useEffect to avoid hydration mismatch
+  const [viewTime, setViewTime] = useState<DateTime | null>(null)
+  useEffect(() => {
+    setViewTime(DateTime.now())
+  }, [])
+  const { data: allocationSummary } = useAllocationSummary(viewTime)
   const [search, setSearch] = useState('')
   const [editingStation, setEditingStation] = useState<string | null>(null)
   const [editValue, setEditValue] = useState<string>('')

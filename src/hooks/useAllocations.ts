@@ -16,16 +16,20 @@ import type {
 
 // Fetch allocation summary for all airports (for map overlay)
 // viewTime filters to allocations active at that point in time
-export function useAllocationSummary(viewTime: DateTime) {
+export function useAllocationSummary(viewTime: DateTime | null) {
   const queryClient = useQueryClient()
-  const debouncedTime = useDebouncedValue(viewTime, 200)
+  // Use a stable fallback time for debouncing when viewTime is null (won't be used due to enabled: false)
+  const fallbackTime = DateTime.fromMillis(0)
+  const debouncedTime = useDebouncedValue(viewTime ?? fallbackTime, 200)
   // Round to minute for cache hits during scrubbing
-  const cacheKey = debouncedTime.startOf('minute').toISO()
-  const timeISO = debouncedTime.toISO()
+  const cacheKey = viewTime ? debouncedTime.startOf('minute').toISO() : null
+  const timeISO = viewTime ? debouncedTime.toISO() : null
 
   const query = useQuery({
     queryKey: ['allocation-summary', cacheKey],
     queryFn: async (): Promise<Map<string, AllocationSummary>> => {
+      if (!timeISO) return new Map()
+
       // Get allocations active at viewTime with carrier info
       // Active means: period_start <= viewTime AND (period_end IS NULL OR period_end > viewTime)
       const { data: allocations, error } = await supabase
@@ -119,6 +123,7 @@ export function useAllocationSummary(viewTime: DateTime) {
 
       return summaryMap
     },
+    enabled: !!viewTime,
     refetchInterval: 60000, // Refetch every minute
   })
 

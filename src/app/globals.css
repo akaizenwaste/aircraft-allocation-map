@@ -68,6 +68,17 @@
   color: var(--foreground);
 }
 
+/* Hide zoom controls on mobile (pinch to zoom) */
+.mapboxgl-ctrl-top-left {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .mapboxgl-ctrl-top-left {
+    display: block;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

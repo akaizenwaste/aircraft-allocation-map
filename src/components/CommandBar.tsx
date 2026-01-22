@@ -13,6 +13,7 @@ interface CommandBarProps {
   highlightLongSits: number | null
   onHighlightLongSitsChange: (hours: number | null) => void
   onStationSelect: (iataCode: string) => void
+  onAddTail: () => void
 }
 
 export function CommandBar({
@@ -23,6 +24,7 @@ export function CommandBar({
   highlightLongSits,
   onHighlightLongSitsChange,
   onStationSelect,
+  onAddTail,
 }: CommandBarProps) {
   const { data: airports } = useAirports()
   const { data: carriers } = useCarriers()
@@ -121,6 +123,28 @@ export function CommandBar({
           </div>
         )}
       </div>
+
+      {/* Add Tail Button */}
+      <button
+        onClick={onAddTail}
+        className="flex items-center gap-2 px-3 py-1.5 bg-[var(--primary)] hover:bg-blue-600 text-white rounded text-sm font-medium transition-colors whitespace-nowrap"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span className="hidden sm:inline">Add Tail</span>
+      </button>
 
       <div className="hidden md:block w-px h-6 bg-[var(--border)]" />
 

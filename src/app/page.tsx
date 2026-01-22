@@ -6,6 +6,7 @@ import { CommandBar } from '@/components/CommandBar'
 import { CarrierLegend } from '@/components/CarrierLegend'
 import { LongestSits } from '@/components/LongestSits'
 import { StationDrawer } from '@/components/StationDrawer'
+import { AddTailDialog } from '@/components/AddTailDialog'
 
 // Dynamic import for Map to avoid SSR issues with Mapbox
 const AircraftMap = dynamic(() => import('@/components/Map').then((mod) => mod.AircraftMap), {
@@ -22,6 +23,7 @@ export default function Home() {
   const [carrierFilter, setCarrierFilter] = useState<string[]>([])
   const [showOnlyWithAircraft, setShowOnlyWithAircraft] = useState(false)
   const [highlightLongSits, setHighlightLongSits] = useState<number | null>(null)
+  const [showAddTailDialog, setShowAddTailDialog] = useState(false)
 
   const handleStationClick = useCallback((iataCode: string) => {
     setSelectedStation(iataCode)
@@ -51,6 +53,7 @@ export default function Home() {
         highlightLongSits={highlightLongSits}
         onHighlightLongSitsChange={setHighlightLongSits}
         onStationSelect={handleStationClick}
+        onAddTail={() => setShowAddTailDialog(true)}
       />
 
       {/* Carrier Legend (bottom left) */}
@@ -65,6 +68,11 @@ export default function Home() {
           stationIata={selectedStation}
           onClose={handleCloseDrawer}
         />
+      )}
+
+      {/* Add Tail Dialog */}
+      {showAddTailDialog && (
+        <AddTailDialog onClose={() => setShowAddTailDialog(false)} />
       )}
     </div>
   )

@@ -2,28 +2,54 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Dialog } from '@base-ui/react'
+import { useQuery } from '@tanstack/react-query'
 import { useCarriers } from '@/hooks/useCarriers'
-import { useAirports } from '@/hooks/useAirports'
-import { useCreateAllocation, useUpdateAllocation } from '@/hooks/useAllocations'
+import { useAirports, useAirport } from '@/hooks/useAirports'
+import { useCreateAllocation, useUpdateAllocation, useAircraftAllocations, useStationAllocations } from '@/hooks/useAllocations'
+import { useOverlapValidation } from '@/hooks/useOverlapValidation'
+import { supabase } from '@/lib/supabase'
 import type { AllocationWithGroundTime, AllocationFormData } from '@/types/database'
 import { DateTime } from 'luxon'
 
 interface AllocationDialogProps {
   stationIata: string | null
-  allocation: AllocationWithGroundTime | null
+  allocation?: AllocationWithGroundTime | null
+  allocationId?: string | null  // For editing by ID (from AircraftPanel)
+  prefillTailNumber?: string | null  // For adding new period with tail pre-filled
   onClose: () => void
 }
 
 export function AllocationDialog({
   stationIata,
   allocation,
+  allocationId,
+  prefillTailNumber,
   onClose,
 }: AllocationDialogProps) {
   const { data: carriers } = useCarriers()
   const { data: airports } = useAirports()
 
+  // Load allocation by ID if provided
+  const { data: loadedAllocation } = useQuery({
+    queryKey: ['allocation', allocationId],
+    queryFn: async () => {
+      if (!allocationId) return null
+      const { data, error } = await supabase
+        .from('allocations_with_ground_time')
+        .select('*')
+        .eq('id', allocationId)
+        .single()
+      if (error) throw error
+      return data as AllocationWithGroundTime
+    },
+    enabled: !!allocationId,
+  })
+
+  // Use loaded allocation or passed allocation
+  const effectiveAllocation = loadedAllocation || allocation || null
+
   // When stationIata is null, user needs to select a station
-  const [selectedStation, setSelectedStation] = useState<string>(stationIata || '')
+  const [selectedStation, setSelectedStation] = useState<string>(stationIata || effectiveAllocation?.station_iata || '')
   const [stationSearch, setStationSearch] = useState('')
   const [showStationDropdown, setShowStationDropdown] = useState(false)
 
@@ -31,8 +57,11 @@ export function AllocationDialog({
   const createAllocation = useCreateAllocation(effectiveStation)
   const updateAllocation = useUpdateAllocation(effectiveStation)
 
-  const isEditing = !!allocation
-  const needsStationSelection = !stationIata
+  // Fetch airport for capacity info
+  const { data: airport } = useAirport(effectiveStation || null)
+
+  const isEditing = !!effectiveAllocation
+  const needsStationSelection = !stationIata && !effectiveAllocation
 
   // Filter airports by search
   const filteredAirports = airports?.filter(
@@ -43,18 +72,59 @@ export function AllocationDialog({
   ).slice(0, 8)
 
   const [formData, setFormData] = useState<AllocationFormData>({
-    carrier_id: allocation?.carrier_id || '',
-    tail_number: allocation?.tail_number || '',
-    airline_code: allocation?.airline_code || 'AA',
-    inbound_flight_number: allocation?.inbound_flight_number || '',
-    outbound_flight_number: allocation?.outbound_flight_number || '',
-    arrival_time_local: allocation?.arrival_time_local
-      ? DateTime.fromISO(allocation.arrival_time_local).toFormat("yyyy-MM-dd'T'HH:mm")
+    carrier_id: effectiveAllocation?.carrier_id || '',
+    tail_number: effectiveAllocation?.tail_number || prefillTailNumber || '',
+    airline_code: effectiveAllocation?.airline_code || 'AA',
+    inbound_flight_number: effectiveAllocation?.inbound_flight_number || '',
+    outbound_flight_number: effectiveAllocation?.outbound_flight_number || '',
+    period_start: effectiveAllocation?.period_start
+      ? DateTime.fromISO(effectiveAllocation.period_start).toFormat("yyyy-MM-dd'T'HH:mm")
       : DateTime.now().toFormat("yyyy-MM-dd'T'HH:mm"),
-    departure_time_local: allocation?.departure_time_local
-      ? DateTime.fromISO(allocation.departure_time_local).toFormat("yyyy-MM-dd'T'HH:mm")
+    period_end: effectiveAllocation?.period_end
+      ? DateTime.fromISO(effectiveAllocation.period_end).toFormat("yyyy-MM-dd'T'HH:mm")
       : null,
   })
+
+  // Update form data when loaded allocation changes
+  useEffect(() => {
+    if (loadedAllocation) {
+      setFormData({
+        carrier_id: loadedAllocation.carrier_id,
+        tail_number: loadedAllocation.tail_number,
+        airline_code: loadedAllocation.airline_code || 'AA',
+        inbound_flight_number: loadedAllocation.inbound_flight_number || '',
+        outbound_flight_number: loadedAllocation.outbound_flight_number || '',
+        period_start: DateTime.fromISO(loadedAllocation.period_start).toFormat("yyyy-MM-dd'T'HH:mm"),
+        period_end: loadedAllocation.period_end
+          ? DateTime.fromISO(loadedAllocation.period_end).toFormat("yyyy-MM-dd'T'HH:mm")
+          : null,
+      })
+      setSelectedStation(loadedAllocation.station_iata)
+    }
+  }, [loadedAllocation])
+
+  // Fetch all allocations for this aircraft for overlap validation
+  const { data: aircraftAllocations } = useAircraftAllocations(formData.tail_number || null)
+
+  // Overlap validation
+  const overlapCheck = useOverlapValidation({
+    tailNumber: formData.tail_number,
+    periodStart: formData.period_start,
+    periodEnd: formData.period_end,
+    existingAllocations: aircraftAllocations,
+    excludeId: effectiveAllocation?.id,
+  })
+
+  // Fetch current allocations at station for capacity check (at period_start time)
+  const capacityCheckTime = formData.period_start
+    ? DateTime.fromFormat(formData.period_start, "yyyy-MM-dd'T'HH:mm")
+    : DateTime.now()
+  const { data: stationAllocations } = useStationAllocations(effectiveStation || null, capacityCheckTime)
+
+  // Capacity check
+  const totalSpots = airport?.total_spots
+  const currentCount = stationAllocations?.length || 0
+  const isAtCapacity = totalSpots !== null && totalSpots !== undefined && currentCount >= totalSpots
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,8 +153,13 @@ export function AllocationDialog({
       newErrors.tail_number = 'Tail number is required'
     }
 
-    if (!formData.arrival_time_local) {
-      newErrors.arrival_time_local = 'Arrival time is required'
+    if (!formData.period_start) {
+      newErrors.period_start = 'Start time is required'
+    }
+
+    // Check for overlap
+    if (overlapCheck.hasOverlap) {
+      newErrors.period_start = overlapCheck.message || 'Time period overlaps with existing allocation'
     }
 
     setErrors(newErrors)
@@ -101,17 +176,17 @@ export function AllocationDialog({
     try {
       const submitData = {
         ...formData,
-        arrival_time_local: new Date(formData.arrival_time_local).toISOString(),
-        departure_time_local: formData.departure_time_local
-          ? new Date(formData.departure_time_local).toISOString()
+        period_start: new Date(formData.period_start).toISOString(),
+        period_end: formData.period_end
+          ? new Date(formData.period_end).toISOString()
           : null,
         // Include station_iata for global add flow
         ...(needsStationSelection && { station_iata: selectedStation }),
       }
 
-      if (isEditing && allocation) {
+      if (isEditing && effectiveAllocation) {
         await updateAllocation.mutateAsync({
-          id: allocation.id,
+          id: effectiveAllocation.id,
           data: submitData,
         })
       } else {
@@ -122,8 +197,8 @@ export function AllocationDialog({
     } catch (error) {
       console.error('Error saving allocation:', error)
       if (error instanceof Error) {
-        if (error.message.includes('duplicate key') || error.message.includes('unique')) {
-          setErrors({ tail_number: 'This tail number already exists at another station' })
+        if (error.message.includes('no_overlapping_periods') || error.message.includes('exclusion')) {
+          setErrors({ period_start: 'This time period overlaps with another allocation for this aircraft' })
         } else {
           setErrors({ submit: error.message })
         }
@@ -355,42 +430,63 @@ export function AllocationDialog({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label
-                  htmlFor="arrival_time_local"
+                  htmlFor="period_start"
                   className="block text-sm font-medium mb-1"
                 >
-                  Arrival Time (Local) *
+                  Period Start *
                 </label>
                 <input
                   type="datetime-local"
-                  id="arrival_time_local"
-                  name="arrival_time_local"
-                  value={formData.arrival_time_local}
+                  id="period_start"
+                  name="period_start"
+                  value={formData.period_start}
                   onChange={handleChange}
                   className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
                 />
-                {errors.arrival_time_local && (
+                {errors.period_start && (
                   <p className="text-red-400 text-xs mt-1">
-                    {errors.arrival_time_local}
+                    {errors.period_start}
                   </p>
                 )}
               </div>
               <div>
                 <label
-                  htmlFor="departure_time_local"
+                  htmlFor="period_end"
                   className="block text-sm font-medium mb-1"
                 >
-                  Departure Time (Local)
+                  Period End
                 </label>
                 <input
                   type="datetime-local"
-                  id="departure_time_local"
-                  name="departure_time_local"
-                  value={formData.departure_time_local || ''}
+                  id="period_end"
+                  name="period_end"
+                  value={formData.period_end || ''}
                   onChange={handleChange}
                   className="w-full bg-[var(--secondary)] border border-[var(--border)] rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
                 />
               </div>
             </div>
+
+            {/* Overlap Warning */}
+            {overlapCheck.hasOverlap && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-yellow-400 text-sm">
+                  {overlapCheck.message}
+                </p>
+              </div>
+            )}
+
+            {/* Capacity Warning */}
+            {isAtCapacity && !isEditing && (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-amber-400 text-sm">
+                  Station is at capacity ({currentCount}/{totalSpots} spots). You can still add this aircraft.
+                </span>
+              </div>
+            )}
 
             {errors.submit && (
               <p className="text-red-400 text-sm p-2 bg-red-500/10 rounded">

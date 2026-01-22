@@ -1,24 +1,27 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { DateTime } from 'luxon'
 import { useAirport } from '@/hooks/useAirports'
 import { useStationAllocations, useDeleteAllocation } from '@/hooks/useAllocations'
-import { formatGroundTime, getGroundTimeClass, formatLocalTime, cn } from '@/lib/utils'
+import { formatGroundTime, formatLocalTime, cn } from '@/lib/utils'
 import type { AllocationWithGroundTime } from '@/types/database'
 import { AllocationDialog } from './AllocationDialog'
 
 interface StationDrawerProps {
   stationIata: string
+  viewTime: DateTime
   onClose: () => void
+  onAircraftClick: (tailNumber: string) => void
 }
 
-type SortField = 'ground_time' | 'arrival_time' | 'carrier' | 'tail_number'
+type SortField = 'ground_time' | 'period_start' | 'carrier' | 'tail_number'
 type SortDirection = 'asc' | 'desc'
 
-export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
+export function StationDrawer({ stationIata, viewTime, onClose, onAircraftClick }: StationDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null)
   const { data: airport } = useAirport(stationIata)
-  const { data: allocations, isLoading } = useStationAllocations(stationIata)
+  const { data: allocations, isLoading } = useStationAllocations(stationIata, viewTime)
   const deleteAllocation = useDeleteAllocation(stationIata)
 
   const [sortField, setSortField] = useState<SortField>('ground_time')
@@ -79,9 +82,9 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
       case 'ground_time':
         comparison = a.ground_time_minutes - b.ground_time_minutes
         break
-      case 'arrival_time':
+      case 'period_start':
         comparison =
-          new Date(a.arrival_time_local).getTime() - new Date(b.arrival_time_local).getTime()
+          new Date(a.period_start).getTime() - new Date(b.period_start).getTime()
         break
       case 'carrier':
         comparison = a.carrier_name.localeCompare(b.carrier_name)
@@ -203,6 +206,30 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
               </div>
             ))}
           </div>
+          {/* Capacity Display */}
+          {airport?.total_spots !== null && airport?.total_spots !== undefined && (
+            <div className="mt-3 pt-3 border-t border-[var(--border)]">
+              <div className={cn(
+                'flex items-center gap-2 text-sm',
+                (allocations?.length || 0) > airport.total_spots && 'text-red-400',
+                (allocations?.length || 0) === airport.total_spots && 'text-amber-400'
+              )}>
+                <span className="font-medium">
+                  {allocations?.length || 0} of {airport.total_spots} spots
+                </span>
+                {(allocations?.length || 0) > airport.total_spots && (
+                  <span className="px-2 py-0.5 bg-red-500/20 rounded text-xs">
+                    {(allocations?.length || 0) - airport.total_spots} over capacity
+                  </span>
+                )}
+                {(allocations?.length || 0) === airport.total_spots && (
+                  <span className="px-2 py-0.5 bg-amber-500/20 rounded text-xs">
+                    At capacity
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -215,7 +242,7 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
               className="bg-[var(--secondary)] border border-[var(--border)] rounded px-2 py-1 text-sm"
             >
               <option value="ground_time">Ground Time</option>
-              <option value="arrival_time">Arrival Time</option>
+              <option value="period_start">Start Time</option>
               <option value="carrier">Carrier</option>
               <option value="tail_number">Tail Number</option>
             </select>
@@ -250,7 +277,8 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
               {sortedAllocations.map((allocation) => (
                 <div
                   key={allocation.id}
-                  className="p-3 bg-[var(--secondary)] rounded-lg hover:bg-zinc-700/50 transition-colors"
+                  className="p-3 bg-[var(--secondary)] rounded-lg hover:bg-zinc-700/50 transition-colors cursor-pointer"
+                  onClick={() => onAircraftClick(allocation.tail_number)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -265,7 +293,7 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
                         {allocation.carrier_short_code || allocation.carrier_name}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleEdit(allocation)}
                         className="p-1 hover:bg-[var(--accent)] rounded"
@@ -318,10 +346,10 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
                       <span>{allocation.outbound_flight_number || '—'}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-[var(--muted-foreground)]">Arr:</span>
+                      <span className="text-[var(--muted-foreground)]">Start:</span>
                       <span>
                         {formatLocalTime(
-                          allocation.arrival_time_local,
+                          allocation.period_start,
                           allocation.airport_timezone
                         )}
                       </span>
@@ -340,11 +368,11 @@ export function StationDrawer({ stationIata, onClose }: StationDrawerProps) {
                     >
                       {formatGroundTime(allocation.ground_time_minutes)} on ground
                     </span>
-                    {allocation.departure_time_local && (
+                    {allocation.period_end && (
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        Dep:{' '}
+                        End:{' '}
                         {formatLocalTime(
-                          allocation.departure_time_local,
+                          allocation.period_end,
                           allocation.airport_timezone
                         )}
                       </span>

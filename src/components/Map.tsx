@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { DateTime } from 'luxon'
 import { useAllocationSummary } from '@/hooks/useAllocations'
 import { generateRingMarkerSVG, getMarkerSize } from '@/lib/utils'
 import type { AllocationSummary } from '@/types/database'
@@ -12,6 +13,7 @@ interface MapProps {
   carrierFilter: string[]
   showOnlyWithAircraft: boolean
   highlightLongSits: number | null
+  viewTime: DateTime
 }
 
 
@@ -21,13 +23,14 @@ export function AircraftMap({
   carrierFilter,
   showOnlyWithAircraft,
   highlightLongSits,
+  viewTime,
 }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<globalThis.Map<string, { marker: mapboxgl.Marker; summary: AllocationSummary }>>(new globalThis.Map())
   const popupRef = useRef<mapboxgl.Popup | null>(null)
 
-  const { data: allocationSummary, isLoading } = useAllocationSummary()
+  const { data: allocationSummary, isLoading } = useAllocationSummary(viewTime)
 
   const [mapLoaded, setMapLoaded] = useState(false)
 

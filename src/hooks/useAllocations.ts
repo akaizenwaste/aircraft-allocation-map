@@ -2,7 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { DateTime } from 'luxon'
 import { supabase } from '@/lib/supabase'
+import { useDebouncedValue } from './useDebouncedValue'
 import type {
   AllocationSummary,
   AllocationWithGroundTime,
@@ -13,13 +15,19 @@ import type {
 } from '@/types/database'
 
 // Fetch allocation summary for all airports (for map overlay)
-export function useAllocationSummary() {
+// viewTime filters to allocations active at that point in time
+export function useAllocationSummary(viewTime: DateTime) {
   const queryClient = useQueryClient()
+  const debouncedTime = useDebouncedValue(viewTime, 200)
+  // Round to minute for cache hits during scrubbing
+  const cacheKey = debouncedTime.startOf('minute').toISO()
+  const timeISO = debouncedTime.toISO()
 
   const query = useQuery({
-    queryKey: ['allocation-summary'],
+    queryKey: ['allocation-summary', cacheKey],
     queryFn: async (): Promise<Map<string, AllocationSummary>> => {
-      // Get all allocations with carrier info
+      // Get allocations active at viewTime with carrier info
+      // Active means: period_start <= viewTime AND (period_end IS NULL OR period_end > viewTime)
       const { data: allocations, error } = await supabase
         .from('aircraft_allocations')
         .select(`
@@ -31,6 +39,8 @@ export function useAllocationSummary() {
             color
           )
         `)
+        .lte('period_start', timeISO)
+        .or(`period_end.is.null,period_end.gt.${timeISO}`)
 
       if (error) throw error
 
@@ -44,7 +54,7 @@ export function useAllocationSummary() {
       // Get all airports
       const { data: airports, error: airportError } = await supabase
         .from('airports')
-        .select('iata_code, name, lat, lng')
+        .select('iata_code, name, lat, lng, total_spots')
 
       if (airportError) throw airportError
 
@@ -52,7 +62,7 @@ export function useAllocationSummary() {
       const summaryMap = new Map<string, AllocationSummary>()
 
       // Initialize with all airports
-      const airportList = (airports || []) as Pick<Airport, 'iata_code' | 'name' | 'lat' | 'lng'>[]
+      const airportList = (airports || []) as Pick<Airport, 'iata_code' | 'name' | 'lat' | 'lng' | 'total_spots'>[]
       airportList.forEach(airport => {
         summaryMap.set(airport.iata_code, {
           station_iata: airport.iata_code,
@@ -61,6 +71,7 @@ export function useAllocationSummary() {
           airport_name: airport.name,
           lat: airport.lat,
           lng: airport.lng,
+          total_spots: airport.total_spots,
         })
       })
 
@@ -111,7 +122,7 @@ export function useAllocationSummary() {
     refetchInterval: 60000, // Refetch every minute
   })
 
-  // Set up realtime subscription
+  // Set up realtime subscription - invalidate queries matching allocation-summary prefix
   useEffect(() => {
     const channel = supabase
       .channel('allocation-changes')
@@ -123,8 +134,10 @@ export function useAllocationSummary() {
           table: 'aircraft_allocations',
         },
         () => {
-          // Invalidate and refetch on any change
-          queryClient.invalidateQueries({ queryKey: ['allocation-summary'] })
+          // Invalidate all allocation-summary queries
+          queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === 'allocation-summary'
+          })
         }
       )
       .subscribe()
@@ -137,19 +150,26 @@ export function useAllocationSummary() {
   return query
 }
 
-// Fetch detailed allocations for a specific station
-export function useStationAllocations(stationIata: string | null) {
+// Fetch detailed allocations for a specific station at a specific time
+export function useStationAllocations(stationIata: string | null, viewTime: DateTime) {
   const queryClient = useQueryClient()
+  const debouncedTime = useDebouncedValue(viewTime, 200)
+  // Round to minute for cache hits during scrubbing
+  const cacheKey = debouncedTime.startOf('minute').toISO()
+  const timeISO = debouncedTime.toISO()
 
   const query = useQuery({
-    queryKey: ['station-allocations', stationIata],
+    queryKey: ['station-allocations', stationIata, cacheKey],
     queryFn: async (): Promise<AllocationWithGroundTime[]> => {
       if (!stationIata) return []
 
+      // Active means: period_start <= viewTime AND (period_end IS NULL OR period_end > viewTime)
       const { data, error } = await supabase
         .from('allocations_with_ground_time')
         .select('*')
         .eq('station_iata', stationIata)
+        .lte('period_start', timeISO)
+        .or(`period_end.is.null,period_end.gt.${timeISO}`)
         .order('ground_time_minutes', { ascending: false })
 
       if (error) throw error
@@ -174,7 +194,11 @@ export function useStationAllocations(stationIata: string | null) {
           filter: `station_iata=eq.${stationIata}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+          // Invalidate all queries for this station across all time keys
+          queryClient.invalidateQueries({
+            predicate: (q) =>
+              q.queryKey[0] === 'station-allocations' && q.queryKey[1] === stationIata
+          })
         }
       )
       .subscribe()
@@ -244,7 +268,7 @@ export function useUpdateAllocation(stationIata: string) {
 }
 
 // Delete allocation mutation
-export function useDeleteAllocation(stationIata: string) {
+export function useDeleteAllocation(stationIata?: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -258,12 +282,20 @@ export function useDeleteAllocation(stationIata: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allocation-summary'] })
-      queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+      queryClient.invalidateQueries({ queryKey: ['allocations-range'] })
+      if (stationIata) {
+        queryClient.invalidateQueries({ queryKey: ['station-allocations', stationIata] })
+      } else {
+        // Invalidate all station queries when no specific station
+        queryClient.invalidateQueries({
+          predicate: (q) => q.queryKey[0] === 'station-allocations'
+        })
+      }
     },
   })
 }
 
-// Top longest sits nationwide
+// Top longest sits nationwide (ongoing allocations with no end time)
 export function useLongestSitsNationwide(limit = 10) {
   return useQuery({
     queryKey: ['longest-sits', limit],
@@ -271,7 +303,7 @@ export function useLongestSitsNationwide(limit = 10) {
       const { data, error } = await supabase
         .from('allocations_with_ground_time')
         .select('*')
-        .is('departure_time_local', null)
+        .is('period_end', null)
         .order('ground_time_minutes', { ascending: false })
         .limit(limit)
 
@@ -280,4 +312,132 @@ export function useLongestSitsNationwide(limit = 10) {
     },
     refetchInterval: 60000,
   })
+}
+
+// Fetch allocations for a date range with optional filters
+export function useAllocationsInRange(
+  startDate: DateTime,
+  endDate: DateTime,
+  filters?: {
+    carrierIds?: string[]
+    stationIatas?: string[]
+    tailNumber?: string
+  }
+) {
+  const queryClient = useQueryClient()
+  const startISO = startDate.startOf('day').toISO()
+  const endISO = endDate.endOf('day').toISO()
+  const cacheKey = `${startISO}-${endISO}-${JSON.stringify(filters || {})}`
+
+  const query = useQuery({
+    queryKey: ['allocations-range', cacheKey],
+    queryFn: async (): Promise<AllocationWithGroundTime[]> => {
+      // Get allocations that overlap with the date range
+      // Overlap means: period_start < endDate AND (period_end IS NULL OR period_end > startDate)
+      let queryBuilder = supabase
+        .from('allocations_with_ground_time')
+        .select('*')
+        .lt('period_start', endISO)
+        .or(`period_end.is.null,period_end.gt.${startISO}`)
+
+      // Apply optional filters
+      if (filters?.carrierIds && filters.carrierIds.length > 0) {
+        queryBuilder = queryBuilder.in('carrier_id', filters.carrierIds)
+      }
+      if (filters?.stationIatas && filters.stationIatas.length > 0) {
+        queryBuilder = queryBuilder.in('station_iata', filters.stationIatas)
+      }
+      if (filters?.tailNumber) {
+        queryBuilder = queryBuilder.ilike('tail_number', `%${filters.tailNumber}%`)
+      }
+
+      const { data, error } = await queryBuilder.order('period_start', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    },
+    refetchInterval: 60000,
+  })
+
+  // Set up realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('allocations-range-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'aircraft_allocations',
+        },
+        () => {
+          queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === 'allocations-range'
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
+
+  return query
+}
+
+// Fetch all allocations for a specific aircraft (for AircraftPanel)
+export function useAircraftAllocations(tailNumber: string | null) {
+  const queryClient = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['aircraft-periods', tailNumber],
+    queryFn: async (): Promise<AllocationWithGroundTime[]> => {
+      if (!tailNumber) return []
+
+      const { data, error } = await supabase
+        .from('allocations_with_ground_time')
+        .select('*')
+        .eq('tail_number', tailNumber)
+        .order('period_start', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    },
+    enabled: !!tailNumber,
+  })
+
+  // Set up realtime subscription for this aircraft
+  useEffect(() => {
+    if (!tailNumber) return
+
+    const channel = supabase
+      .channel(`aircraft-${tailNumber}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'aircraft_allocations',
+          filter: `tail_number=eq.${tailNumber}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['aircraft-periods', tailNumber] })
+          // Also invalidate summary and station queries
+          queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === 'allocation-summary'
+          })
+          queryClient.invalidateQueries({
+            predicate: (q) => q.queryKey[0] === 'station-allocations'
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tailNumber, queryClient])
+
+  return query
 }

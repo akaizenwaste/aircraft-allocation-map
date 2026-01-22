@@ -10,6 +10,7 @@ export interface Database {
           timezone: string
           city: string | null
           state: string | null
+          total_spots: number | null
           created_at: string
         }
         Insert: {
@@ -20,6 +21,7 @@ export interface Database {
           timezone: string
           city?: string | null
           state?: string | null
+          total_spots?: number | null
           created_at?: string
         }
         Update: {
@@ -30,6 +32,7 @@ export interface Database {
           timezone?: string
           city?: string | null
           state?: string | null
+          total_spots?: number | null
           created_at?: string
         }
       }
@@ -68,8 +71,8 @@ export interface Database {
           airline_code: string | null
           inbound_flight_number: string | null
           outbound_flight_number: string | null
-          arrival_time_local: string
-          departure_time_local: string | null
+          period_start: string
+          period_end: string | null
           created_at: string
           updated_at: string
           created_by: string | null
@@ -83,8 +86,8 @@ export interface Database {
           airline_code?: string | null
           inbound_flight_number?: string | null
           outbound_flight_number?: string | null
-          arrival_time_local: string
-          departure_time_local?: string | null
+          period_start: string
+          period_end?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -98,8 +101,8 @@ export interface Database {
           airline_code?: string | null
           inbound_flight_number?: string | null
           outbound_flight_number?: string | null
-          arrival_time_local?: string
-          departure_time_local?: string | null
+          period_start?: string
+          period_end?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -117,8 +120,8 @@ export interface Database {
           airline_code: string | null
           inbound_flight_number: string | null
           outbound_flight_number: string | null
-          arrival_time_local: string
-          departure_time_local: string | null
+          period_start: string
+          period_end: string | null
           created_at: string
           updated_at: string
           created_by: string | null
@@ -172,6 +175,7 @@ export interface AllocationSummary {
   airport_name: string
   lat: number
   lng: number
+  total_spots: number | null
 }
 
 export type Airport = Database['public']['Tables']['airports']['Row']
@@ -185,6 +189,17 @@ export interface AllocationFormData {
   airline_code: string
   inbound_flight_number: string
   outbound_flight_number: string
-  arrival_time_local: string
-  departure_time_local: string | null
+  period_start: string
+  period_end: string | null
+}
+
+export interface OverlapCheckResult {
+  hasOverlap: boolean
+  message: string | null
+  conflictingAllocation?: {
+    id: string
+    station_iata: string
+    period_start: string
+    period_end: string | null
+  }
 }

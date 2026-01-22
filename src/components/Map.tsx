@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { DateTime } from 'luxon'
 import { useAllocationSummary } from '@/hooks/useAllocations'
 import { generateRingMarkerSVG, getMarkerSize } from '@/lib/utils'
 import type { AllocationSummary } from '@/types/database'
@@ -12,6 +13,7 @@ interface MapProps {
   carrierFilter: string[]
   showOnlyWithAircraft: boolean
   highlightLongSits: number | null
+  viewTime: DateTime
 }
 
 
@@ -21,13 +23,14 @@ export function AircraftMap({
   carrierFilter,
   showOnlyWithAircraft,
   highlightLongSits,
+  viewTime,
 }: MapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<globalThis.Map<string, { marker: mapboxgl.Marker; summary: AllocationSummary }>>(new globalThis.Map())
   const popupRef = useRef<mapboxgl.Popup | null>(null)
 
-  const { data: allocationSummary, isLoading } = useAllocationSummary()
+  const { data: allocationSummary, isLoading } = useAllocationSummary(viewTime)
 
   const [mapLoaded, setMapLoaded] = useState(false)
 
@@ -56,13 +59,29 @@ export function AircraftMap({
       el.style.boxShadow = ''
       el.style.borderRadius = ''
 
-      // Add highlight ring for long sits
+      // Capacity-based outline (only when total_spots is configured)
+      if (summary.total_spots !== null && summary.total_spots !== undefined) {
+        const capacityRatio = filteredTotal / summary.total_spots
+        el.style.borderRadius = '50%'
+        if (capacityRatio > 1) {
+          // Over capacity - red
+          el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.7)'
+        } else if (capacityRatio >= 0.8) {
+          // Near capacity (80%+) - amber
+          el.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.7)'
+        } else {
+          // Available - green
+          el.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.5)'
+        }
+      }
+
+      // Add highlight ring for long sits (overrides capacity)
       if (highlightLongSits && summary.total_count > 0) {
         el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.5)'
         el.style.borderRadius = '50%'
       }
 
-      // Highlight selected station
+      // Highlight selected station (overrides all)
       if (selectedStation === summary.station_iata) {
         el.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.8)'
         el.style.borderRadius = '50%'
@@ -117,6 +136,35 @@ export function AircraftMap({
       )
       .join('')
 
+    // Capacity display
+    let capacityHtml = ''
+    if (summary.total_spots !== null && summary.total_spots !== undefined) {
+      const available = summary.total_spots - summary.total_count
+      const isOverCapacity = summary.total_count > summary.total_spots
+      const isAtCapacity = summary.total_count === summary.total_spots
+
+      let statusColor = 'text-green-400'
+      let statusText = `${available} spots available`
+
+      if (isOverCapacity) {
+        statusColor = 'text-red-400'
+        statusText = `${Math.abs(available)} over capacity`
+      } else if (isAtCapacity) {
+        statusColor = 'text-amber-400'
+        statusText = 'At capacity'
+      }
+
+      capacityHtml = `
+        <div class="mt-2 pt-2 border-t border-zinc-700">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-zinc-400">Capacity</span>
+            <span class="${statusColor}">${summary.total_count} / ${summary.total_spots}</span>
+          </div>
+          <div class="text-xs ${statusColor} mt-1">${statusText}</div>
+        </div>
+      `
+    }
+
     return `
       <div class="p-3 min-w-[200px]">
         <div class="font-semibold text-base mb-1">${summary.station_iata}</div>
@@ -130,6 +178,7 @@ export function AircraftMap({
             ? `<div class="space-y-1 border-t border-zinc-700 pt-2">${carrierRows}</div>`
             : '<div class="text-zinc-500 text-sm">No aircraft allocated</div>'
         }
+        ${capacityHtml}
       </div>
     `
   }, [])
@@ -144,6 +193,11 @@ export function AircraftMap({
 
     // Add markers for each airport
     allocationSummary.forEach((summary, iataCode) => {
+      // Default: hide stations with no capacity configured AND no aircraft
+      const hasCapacity = summary.total_spots !== null && summary.total_spots !== undefined
+      const hasAircraft = summary.total_count > 0
+      if (!hasCapacity && !hasAircraft) return
+
       // Filter: only show airports with aircraft if filter is on
       if (showOnlyWithAircraft && summary.total_count === 0) return
 
@@ -156,7 +210,7 @@ export function AircraftMap({
       }
 
       const el = document.createElement('div')
-      el.className = 'marker-container cursor-pointer transition-transform hover:scale-110'
+      el.className = 'marker-container cursor-pointer'
 
       updateMarkerElement(el, summary)
 

@@ -143,7 +143,7 @@ export function StationDrawer({ stationIata, viewTime, onClose, onAircraftClick 
       />
       <div
         ref={drawerRef}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-[var(--card)] border-l border-[var(--border)] shadow-xl z-50 drawer-enter overflow-hidden flex flex-col"
+        className="fixed right-0 top-0 bottom-0 w-full sm:max-w-lg bg-[var(--card)] border-l border-[var(--border)] shadow-xl z-50 drawer-enter overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-title"

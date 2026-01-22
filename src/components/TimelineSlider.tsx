@@ -32,18 +32,33 @@ export function TimelineSlider({ viewTime, onViewTimeChange }: TimelineSliderPro
   }, [onViewTimeChange])
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 bg-[var(--card)] border-t border-[var(--border)]">
-      {/* Date picker */}
-      <input
-        type="date"
-        value={viewTime.toISODate() ?? ''}
-        onChange={handleDateChange}
-        className="px-2 py-1 text-sm border border-[var(--border)] rounded bg-[var(--secondary)]"
-      />
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 bg-[var(--card)] border-t border-[var(--border)]">
+      {/* Top row on mobile: date picker, time display, now button */}
+      <div className="flex items-center gap-2 sm:contents">
+        {/* Date picker */}
+        <input
+          type="date"
+          value={viewTime.toISODate() ?? ''}
+          onChange={handleDateChange}
+          className="flex-1 sm:flex-none px-2 py-1 text-sm border border-[var(--border)] rounded bg-[var(--secondary)]"
+        />
 
-      {/* Timeline slider */}
+        {/* Current time display */}
+        <span className="font-mono text-lg font-medium text-blue-500 w-14 text-center sm:order-last">
+          {viewTime.toFormat('HH:mm')}
+        </span>
+
+        <button
+          onClick={jumpToNow}
+          className="px-3 py-1.5 text-xs bg-[var(--secondary)] hover:bg-[var(--accent)] rounded transition-colors sm:order-last"
+        >
+          Now
+        </button>
+      </div>
+
+      {/* Timeline slider - full width row on mobile */}
       <div className="flex-1 flex items-center gap-2">
-        <span className="text-xs text-[var(--muted-foreground)] w-12">00:00</span>
+        <span className="text-xs text-[var(--muted-foreground)] w-10 sm:w-12 text-center">00:00</span>
         <input
           type="range"
           min={0}
@@ -52,20 +67,8 @@ export function TimelineSlider({ viewTime, onViewTimeChange }: TimelineSliderPro
           onChange={handleSliderChange}
           className="flex-1 h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer accent-blue-500"
         />
-        <span className="text-xs text-[var(--muted-foreground)] w-12">23:59</span>
+        <span className="text-xs text-[var(--muted-foreground)] w-10 sm:w-12 text-center">23:59</span>
       </div>
-
-      {/* Current time display */}
-      <span className="font-mono text-lg font-medium text-blue-500 w-14">
-        {viewTime.toFormat('HH:mm')}
-      </span>
-
-      <button
-        onClick={jumpToNow}
-        className="px-3 py-1.5 text-xs bg-[var(--secondary)] hover:bg-[var(--accent)] rounded transition-colors"
-      >
-        Now
-      </button>
     </div>
   )
 }

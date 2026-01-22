@@ -28,7 +28,8 @@ export function useWinterWeatherImpacts() {
   const impactedAirports: AirportWeatherForecast[] = query.data?.forecasts.filter(
     (f) =>
       !f.error &&
-      (f.snowInches !== null || f.iceInches !== null)
+      (f.snowInchesLow !== null || f.snowInchesHigh !== null ||
+       f.iceInchesLow !== null || f.iceInchesHigh !== null)
   ) ?? []
 
   return {

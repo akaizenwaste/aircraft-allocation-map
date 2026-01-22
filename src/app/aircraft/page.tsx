@@ -16,7 +16,7 @@ type SortDirection = 'asc' | 'desc'
 export default function AircraftPage() {
   // Date range filter
   const [startDate, setStartDate] = useState(() => DateTime.now().startOf('day'))
-  const [endDate, setEndDate] = useState(() => DateTime.now().endOf('day'))
+  const [endDate, setEndDate] = useState(() => DateTime.fromISO('2026-01-27').endOf('day'))
 
   // Filters
   const [selectedCarriers, setSelectedCarriers] = useState<string[]>([])

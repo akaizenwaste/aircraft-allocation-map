@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { HelpButton } from './HelpDialog'
+import { DisclaimerBanner } from './DisclaimerBanner'
 
 interface NavItem {
   href: string
@@ -104,30 +106,34 @@ export function NavBar() {
   const pathname = usePathname()
 
   return (
-    <nav className="bg-[var(--card)] border-b border-[var(--border)]">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center h-12">
-          <div className="flex items-center gap-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-[var(--secondary)] text-[var(--foreground)]'
-                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]/50'
-                  }`}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              )
-            })}
+    <>
+      <DisclaimerBanner />
+      <nav className="bg-[var(--card)] border-b border-[var(--border)]">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between h-12">
+            <div className="flex items-center gap-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-[var(--secondary)] text-[var(--foreground)]'
+                        : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]/50'
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+            <HelpButton />
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { HelpButton } from './HelpDialog'
@@ -104,6 +105,7 @@ const navItems: NavItem[] = [
 
 export function NavBar() {
   const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <>
@@ -111,7 +113,40 @@ export function NavBar() {
       <nav className="bg-[var(--card)] border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-12">
-            <div className="flex items-center gap-1">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="sm:hidden p-2 -ml-2 hover:bg-[var(--secondary)] rounded-md transition-colors"
+              aria-label="Toggle menu"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {mobileMenuOpen ? (
+                  <>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
+            </button>
+
+            {/* Desktop nav items */}
+            <div className="hidden sm:flex items-center gap-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -130,8 +165,40 @@ export function NavBar() {
                 )
               })}
             </div>
+
+            {/* Mobile: show current page name */}
+            <span className="sm:hidden text-sm font-medium">
+              {navItems.find(item => item.href === pathname)?.label || 'Menu'}
+            </span>
+
             <HelpButton />
           </div>
+
+          {/* Mobile menu dropdown */}
+          {mobileMenuOpen && (
+            <div className="sm:hidden pb-3 border-t border-[var(--border)] mt-2 pt-2">
+              <div className="flex flex-col gap-1">
+                {navItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-[var(--secondary)] text-[var(--foreground)]'
+                          : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)]/50'
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     </>

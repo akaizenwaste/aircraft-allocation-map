@@ -9,6 +9,7 @@ import type { AllocationSummary } from '@/types/database'
 
 interface MapProps {
   onStationClick: (iataCode: string) => void
+  onMapClick?: () => void
   selectedStation: string | null
   carrierFilter: string[]
   showOnlyWithAircraft: boolean
@@ -19,6 +20,7 @@ interface MapProps {
 
 export function AircraftMap({
   onStationClick,
+  onMapClick,
   selectedStation,
   carrierFilter,
   showOnlyWithAircraft,
@@ -112,6 +114,11 @@ export function AircraftMap({
 
     mapRef.current.on('load', () => {
       setMapLoaded(true)
+    })
+
+    // Click on map (not on a marker) closes any open drawer
+    mapRef.current.on('click', () => {
+      onMapClick?.()
     })
 
     return () => {
@@ -245,7 +252,8 @@ export function AircraftMap({
       })
 
       // Click handler
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation() // Prevent map click from closing drawer
         onStationClick(iataCode)
       })
 

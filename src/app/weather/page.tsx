@@ -57,17 +57,17 @@ export default function WeatherPage() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <NavBar />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div>
-            <h1 className="text-2xl font-semibold mb-1">Winter Weather Forecast</h1>
-            <p className="text-[var(--muted-foreground)]">
+            <h1 className="text-xl sm:text-2xl font-semibold mb-1">Winter Weather Forecast</h1>
+            <p className="text-sm sm:text-base text-[var(--muted-foreground)]">
               Snow and ice impacts for all stations
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => refetch()}
               disabled={isFetching || isFetchingFromNWS}
@@ -89,7 +89,7 @@ export default function WeatherPage() {
                 <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
                 <path d="M21 3v5h-5" />
               </svg>
-              Reload
+              <span className="hidden sm:inline">Reload</span>
             </button>
 
             <button
@@ -115,16 +115,17 @@ export default function WeatherPage() {
                 <line x1="8" y1="20" x2="8.01" y2="20" />
                 <line x1="12" y1="18" x2="12.01" y2="18" />
               </svg>
-              {isFetchingFromNWS ? 'Fetching...' : 'Fetch from NWS'}
+              {isFetchingFromNWS ? 'Fetching...' : <span className="hidden sm:inline">Fetch from NWS</span>}
+              {!isFetchingFromNWS && <span className="sm:hidden">NWS</span>}
             </button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 mb-4">
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 sm:p-4 mb-4">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-4">
             {/* Search */}
-            <div className="flex-1 min-w-[200px] max-w-[300px]">
+            <div className="col-span-2 sm:flex-1 sm:min-w-[200px] sm:max-w-[300px]">
               <div className="relative">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -156,7 +157,7 @@ export default function WeatherPage() {
               <select
                 value={filters.state}
                 onChange={(e) => setFilters({ ...filters, state: e.target.value })}
-                className="px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="">All States</option>
                 {states.map((state) => (
@@ -177,7 +178,7 @@ export default function WeatherPage() {
                     weatherType: e.target.value as WeatherFilters['weatherType'],
                   })
                 }
-                className="px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="all">All Weather</option>
                 <option value="snow">Snow Only</option>
@@ -196,7 +197,7 @@ export default function WeatherPage() {
                     minSnow: e.target.value ? Number(e.target.value) : null,
                   })
                 }
-                className="px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="">Any Snow</option>
                 <option value="2">Snow 2"+</option>
@@ -216,7 +217,7 @@ export default function WeatherPage() {
                     minIce: e.target.value ? Number(e.target.value) : null,
                   })
                 }
-                className="px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="w-full px-3 py-2 bg-[var(--secondary)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="">Any Ice</option>
                 <option value="0.25">Ice 0.25"+</option>
@@ -226,7 +227,7 @@ export default function WeatherPage() {
             </div>
 
             {/* Show All Toggle */}
-            <label className="flex items-center gap-2 text-sm cursor-pointer ml-auto">
+            <label className="col-span-2 sm:col-span-1 flex items-center gap-2 text-sm cursor-pointer sm:ml-auto">
               <input
                 type="checkbox"
                 checked={showAllAirports}
@@ -252,7 +253,7 @@ export default function WeatherPage() {
                     minIce: null,
                   })
                 }
-                className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+                className="col-span-2 sm:col-span-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors text-center sm:text-left"
               >
                 Clear filters
               </button>

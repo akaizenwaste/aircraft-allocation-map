@@ -64,7 +64,7 @@ export function AircraftPanel({
   // Loading state
   if (isLoading) {
     return (
-      <div className="w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex items-center justify-center">
+      <div className="w-full sm:w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex items-center justify-center">
         <div className="text-[var(--muted-foreground)]">Loading...</div>
       </div>
     )
@@ -73,7 +73,7 @@ export function AircraftPanel({
   // Error state
   if (error) {
     return (
-      <div className="w-96 h-full bg-[var(--card)] border-l border-[var(--border)] p-4">
+      <div className="w-full sm:w-96 h-full bg-[var(--card)] border-l border-[var(--border)] p-4">
         <div className="text-red-400">Error loading allocations</div>
         <button onClick={onClose} className="mt-2 text-sm text-[var(--muted-foreground)] hover:underline">
           Close
@@ -87,7 +87,7 @@ export function AircraftPanel({
   // Empty state
   if (!allocations?.length) {
     return (
-      <div className="w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex flex-col">
+      <div className="w-full sm:w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex flex-col">
         <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
           <h2 className="text-lg font-semibold font-mono">{tailNumber}</h2>
           <button
@@ -125,7 +125,7 @@ export function AircraftPanel({
   }
 
   return (
-    <div className="w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex flex-col">
+    <div className="w-full sm:w-96 h-full bg-[var(--card)] border-l border-[var(--border)] flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
         <div>

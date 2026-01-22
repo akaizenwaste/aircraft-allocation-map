@@ -1,18 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { DateTime } from 'luxon'
 import { NavBar } from '@/components/NavBar'
+import { CapacitySummary } from '@/components/CapacitySummary'
 import { useAirports } from '@/hooks/useAirports'
+import { useAllocationSummary } from '@/hooks/useAllocations'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Airport } from '@/types/database'
 
 export default function CapacityPage() {
   const { data: airports, isLoading } = useAirports()
+  const { data: allocationSummary } = useAllocationSummary(DateTime.now())
   const [search, setSearch] = useState('')
   const [editingStation, setEditingStation] = useState<string | null>(null)
   const [editValue, setEditValue] = useState<string>('')
   const queryClient = useQueryClient()
+
+  // Calculate total aircraft and capacity
+  const capacityTotals = useMemo(() => {
+    if (!allocationSummary) return { totalAircraft: 0, totalCapacity: null }
+
+    let totalAircraft = 0
+    let totalCapacity = 0
+    let hasAnyCapacity = false
+
+    allocationSummary.forEach((summary) => {
+      totalAircraft += summary.total_count
+      if (summary.total_spots !== null && summary.total_spots !== undefined) {
+        totalCapacity += summary.total_spots
+        hasAnyCapacity = true
+      }
+    })
+
+    return {
+      totalAircraft,
+      totalCapacity: hasAnyCapacity ? totalCapacity : null,
+    }
+  }, [allocationSummary])
 
   const updateCapacity = useMutation({
     mutationFn: async ({ iataCode, totalSpots }: { iataCode: string; totalSpots: number | null }) => {
@@ -71,22 +97,32 @@ export default function CapacityPage() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <NavBar />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold mb-2">Station Capacity</h1>
-          <p className="text-[var(--muted-foreground)]">
-            Set the maximum number of aircraft spots for each station. Leave empty for unlimited capacity.
-          </p>
+      <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold mb-2">Station Capacity</h1>
+              <p className="text-sm sm:text-base text-[var(--muted-foreground)]">
+                Set the maximum number of aircraft spots for each station. Leave empty for unlimited capacity.
+              </p>
+            </div>
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-4 py-2 shrink-0">
+              <CapacitySummary
+                totalAircraft={capacityTotals.totalAircraft}
+                totalCapacity={capacityTotals.totalCapacity}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <input
             type="text"
-            placeholder="Search stations by code, name, or city..."
+            placeholder="Search stations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full max-w-md bg-[var(--secondary)] border border-[var(--border)] rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
+            className="w-full sm:max-w-md bg-[var(--secondary)] border border-[var(--border)] rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
           />
         </div>
 
@@ -96,8 +132,8 @@ export default function CapacityPage() {
             Loading stations...
           </div>
         ) : (
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
-            <table className="w-full">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden overflow-x-auto">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--secondary)]/50">
                   <th className="text-left px-4 py-3 text-sm font-medium">Station</th>

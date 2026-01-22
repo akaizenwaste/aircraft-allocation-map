@@ -66,9 +66,9 @@ export function CommandBar({
   }
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg whitespace-nowrap">
+    <div className="absolute top-4 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-30 flex items-center gap-2 bg-[var(--card)]/95 backdrop-blur border border-[var(--border)] rounded-lg p-2 shadow-lg overflow-x-auto">
       {/* Airport Search */}
-      <div ref={searchRef} className="relative">
+      <div ref={searchRef} className="relative flex-shrink-0">
         <div className="flex items-center gap-2 bg-[var(--secondary)] rounded px-3 py-1.5">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -80,7 +80,7 @@ export function CommandBar({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-[var(--muted-foreground)]"
+            className="text-[var(--muted-foreground)] flex-shrink-0"
           >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -93,8 +93,8 @@ export function CommandBar({
               setShowSearchResults(true)
             }}
             onFocus={() => setShowSearchResults(true)}
-            placeholder="Search airport (IATA/name)"
-            className="bg-transparent border-none outline-none text-sm w-48 placeholder:text-[var(--muted-foreground)]"
+            placeholder="Search airport"
+            className="bg-transparent border-none outline-none text-sm w-28 sm:w-48 placeholder:text-[var(--muted-foreground)]"
           />
         </div>
 
@@ -122,11 +122,11 @@ export function CommandBar({
         )}
       </div>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+      <div className="w-px h-6 bg-[var(--border)] flex-shrink-0" />
 
       {/* Carrier Filter */}
       <Popover.Root>
-        <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors">
+        <Popover.Trigger className="flex items-center gap-2 px-2 sm:px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors flex-shrink-0 whitespace-nowrap">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -137,17 +137,18 @@ export function CommandBar({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="flex-shrink-0"
           >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>
-          <span>
+          <span className="hidden sm:inline">
             Carriers
-            {carrierFilter.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs rounded-full">
-                {carrierFilter.length}
-              </span>
-            )}
           </span>
+          {carrierFilter.length > 0 && (
+            <span className="px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs rounded-full">
+              {carrierFilter.length}
+            </span>
+          )}
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner>
@@ -188,24 +189,25 @@ export function CommandBar({
         </Popover.Portal>
       </Popover.Root>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+      <div className="w-px h-6 bg-[var(--border)] flex-shrink-0" />
 
       {/* Only with Aircraft Toggle */}
-      <label className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded text-sm transition-colors">
+      <label className="flex items-center gap-2 px-2 sm:px-3 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded text-sm transition-colors flex-shrink-0 whitespace-nowrap">
         <input
           type="checkbox"
           checked={showOnlyWithAircraft}
           onChange={(e) => onShowOnlyWithAircraftChange(e.target.checked)}
-          className="w-4 h-4 rounded border-[var(--border)]"
+          className="w-4 h-4 rounded border-[var(--border)] flex-shrink-0"
         />
-        <span>With aircraft only</span>
+        <span className="hidden sm:inline">With aircraft only</span>
+        <span className="sm:hidden">Active</span>
       </label>
 
-      <div className="w-px h-6 bg-[var(--border)]" />
+      <div className="w-px h-6 bg-[var(--border)] flex-shrink-0" />
 
       {/* Highlight Long Sits */}
       <Popover.Root>
-        <Popover.Trigger className="flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors">
+        <Popover.Trigger className="flex items-center gap-2 px-2 sm:px-3 py-1.5 hover:bg-[var(--secondary)] rounded text-sm transition-colors flex-shrink-0 whitespace-nowrap">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -216,18 +218,17 @@ export function CommandBar({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="flex-shrink-0"
           >
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          <span>
-            Long sits
-            {highlightLongSits && (
-              <span className="ml-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
-                {highlightLongSits}h+
-              </span>
-            )}
-          </span>
+          <span className="hidden sm:inline">Long sits</span>
+          {highlightLongSits && (
+            <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
+              {highlightLongSits}h+
+            </span>
+          )}
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Positioner>

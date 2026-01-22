@@ -167,10 +167,10 @@ export default function AircraftPage() {
     <div className="min-h-screen bg-[var(--background)]">
       <NavBar />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold">Aircraft Management</h1>
-          <div className="flex items-center gap-3">
+      <main className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-semibold">Aircraft Management</h1>
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={exportToCSV}
               disabled={!sortedAllocations.length}
@@ -179,7 +179,8 @@ export default function AircraftPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              Export CSV
+              <span className="hidden sm:inline">Export CSV</span>
+              <span className="sm:hidden">CSV</span>
             </button>
             <button
               onClick={() => setShowAddDialog(true)}
@@ -188,14 +189,15 @@ export default function AircraftPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              Add Allocation
+              <span className="hidden sm:inline">Add Allocation</span>
+              <span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
             {/* Date Range */}
             <div>
               <label className="block text-sm font-medium mb-1 text-[var(--muted-foreground)]">
@@ -280,8 +282,8 @@ export default function AircraftPage() {
           </div>
 
           {/* Quick date presets */}
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[var(--border)]">
-            <span className="text-sm text-[var(--muted-foreground)]">Quick:</span>
+          <div className="col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-5 flex flex-wrap items-center gap-2 mt-2 sm:mt-4 pt-2 sm:pt-4 border-t border-[var(--border)]">
+            <span className="text-xs sm:text-sm text-[var(--muted-foreground)]">Quick:</span>
             <button
               onClick={() => {
                 setStartDate(DateTime.now().startOf('day'))
@@ -305,7 +307,7 @@ export default function AircraftPage() {
                 setStartDate(DateTime.now().startOf('week'))
                 setEndDate(DateTime.now().endOf('week'))
               }}
-              className="px-2 py-1 text-xs bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 rounded transition-colors"
+              className="px-2 py-1 text-xs bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 rounded transition-colors hidden sm:inline-block"
             >
               This Week
             </button>
@@ -316,14 +318,14 @@ export default function AircraftPage() {
               }}
               className="px-2 py-1 text-xs bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 rounded transition-colors"
             >
-              Last 7 Days
+              7 Days
             </button>
             <button
               onClick={() => {
                 setStartDate(DateTime.now().startOf('month'))
                 setEndDate(DateTime.now().endOf('month'))
               }}
-              className="px-2 py-1 text-xs bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 rounded transition-colors"
+              className="px-2 py-1 text-xs bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 rounded transition-colors hidden sm:inline-block"
             >
               This Month
             </button>
@@ -336,7 +338,7 @@ export default function AircraftPage() {
                 }}
                 className="px-2 py-1 text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded transition-colors ml-auto"
               >
-                Clear Filters
+                Clear
               </button>
             )}
           </div>
@@ -352,7 +354,7 @@ export default function AircraftPage() {
         {/* Table */}
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--secondary)]/50">
                   <th
